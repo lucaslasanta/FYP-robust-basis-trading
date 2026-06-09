@@ -1,4 +1,4 @@
-# Robust and Adaptive Optimisation — A Quantitative Framework for Bond Futures Basis Strategies
+# Robust and Adaptive Optimization — A Quantitative Framework for Bond Futures Basis Strategies
 
 **Imperial College London — Electrical and Electronic Engineering — Final Year Project (2026)**  
 **Author:** Lucas Lasanta | **Supervisor:** Prof. Tony Constantinides
