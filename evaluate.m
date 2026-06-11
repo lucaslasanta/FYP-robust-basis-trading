@@ -163,7 +163,7 @@ plot(dates_t, results.w_lpnn);
 legend(mat_names,'Location','northeast'); grid on;
 xlabel('Date'); ylabel('Portfolio weight');
 title('LPNN adaptive portfolio weights');
-yline(0,'k--','LineWidth',0.8);
+yline(0,'k--','LineWidth',0.8,'HandleVisibility','off');
 saveas(gcf,'fig_lpnn_weights.pdf');
 
 %--- figure 3: active weights (lpnn - equal weight) ---
@@ -173,7 +173,7 @@ plot(dates_t, active_w);
 legend(mat_names,'Location','northeast'); grid on;
 xlabel('Date'); ylabel('Active weight (vs equal weight)');
 title('LPNN active weights');
-yline(0,'k--','LineWidth',0.8);
+yline(0,'k--','LineWidth',0.8,'HandleVisibility','off');
 saveas(gcf,'fig_active_weights.pdf');
 
 %--- figure 4: lyapunov energy ---
@@ -214,8 +214,8 @@ if isfield(results,'mu_hat_log')
     plot(dates_t, results.mu_hat_log);
     legend(mat_names,'Location','best'); grid on;
     xlabel('Date'); ylabel('\mu_{hat}');
-    title('Factor-implied expected returns by maturity');
-    yline(0,'k--','LineWidth',0.8);
+    title('Basis z-score expected return signal by maturity');
+    yline(0,'k--','LineWidth',0.8,'HandleVisibility','off');
     saveas(gcf,'fig_mu_hat.pdf');
 end
 

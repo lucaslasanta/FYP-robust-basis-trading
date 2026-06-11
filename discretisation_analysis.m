@@ -83,8 +83,8 @@ for di = 1:2
     epsilon = sqrt(eps2);
     Phi     = Sigma_f + 1e-6*eye(K);
 
-    L_tikh      = 2*diag([1 2 2 1]) - diag([1 1 1],1) - diag([1 1 1],-1);
-    L_tikh(1,1) = 1;  L_tikh(4,4) = 1;
+    %tikhonov matrix: path-graph laplacian for 4 maturities (row sums = 0)
+    L_tikh = diag([1 2 2 1]) - diag([1 1 1],1) - diag([1 1 1],-1);
 
     %--- smooth Hessian and stability analysis ---
     %  nabla^2_w L_aug (smooth part) = 2*gamma*Sigma + 2*lambda_T*L_T + c*ones(M,M)
@@ -206,8 +206,11 @@ for di = 1:2
             all_E(k, mi)    = Ek;
             all_dist(k, mi) = norm(w_k - w_star);
 
-            if isinf(it3) && Ek < 1e-3, it3 = k; end
-            if isinf(it5) && Ek < 1e-5, it5 = k; end
+            %tighter thresholds: corrected objective has smaller gradient
+            %scale, so E<1e-3/1e-5 are reached almost immediately by all
+            %methods and no longer discriminate between them
+            if isinf(it3) && Ek < 1e-5, it3 = k; end
+            if isinf(it5) && Ek < 1e-7, it5 = k; end
         end
 
         all_wfin(:,mi) = w_k;
@@ -217,21 +220,26 @@ for di = 1:2
     end
 
     %--- convergence table ---
+    %report the best (minimum) energy reached: fixed-step subgradient methods
+    %oscillate in an O(tau*kappa) band around a non-smooth optimum when
+    %components of w* sit on the kink of the L1 transaction cost term
     fprintf('\n  Convergence table  (N_iter=%d):\n', n_iter);
     fprintf('  %-30s %6s %14s %14s %12s %11s %8s\n', ...
-        'Method','tau','Iters(E<1e-3)','Iters(E<1e-5)','Final E','||w-w*||','ms');
+        'Method','tau','Iters(E<1e-5)','Iters(E<1e-7)','Min E','||w-w*||','ms');
     fprintf('  %s\n', repmat('-',1,99));
     for mi = 1:4
         fprintf('  %-30s %6.4f %14s %14s %12.3e %11.6f %8.1f\n', ...
             method_names{mi}, method_taus(mi), ...
             fmt_n(all_it3(mi),n_iter), fmt_n(all_it5(mi),n_iter), ...
-            all_E(end,mi), all_dist(end,mi), all_tms(mi));
+            min(all_E(:,mi)), all_dist(end,mi), all_tms(mi));
     end
     fprintf('  Note: Adaptive Euler tau_in=%.1f capped to tau_1=%.4f (90%% of tau_c=%.4f)\n',...
         tau_in, tau_ae, tau_c);
     fprintf('  Note: Euler above bound tau=%.2f lies %.1f%% above tau_c; converges due to non-smooth stabilisation\n',...
         tau_above, 100*(tau_above/tau_c - 1));
-    fprintf('  RK4 efficiency:  %s total grad evals to E<1e-5  vs  Euler (fixed): %s\n',...
+    fprintf('  Note: where w* has components at the L1 kink (w*_i = w_prev_i), iterates\n');
+    fprintf('        chatter in an O(tau*kappa) band; floors scale with tau as predicted\n');
+    fprintf('  RK4 efficiency:  %s total grad evals to E<1e-7  vs  Euler (fixed): %s\n',...
         fmt_rk4(all_it5(2),n_iter), fmt_n(all_it5(1),n_iter));
 
     %--- subplot: Lyapunov energy vs iteration ---
@@ -243,26 +251,34 @@ for di = 1:2
     iters = (1:n_iter)';
 
     subplot(1, 2, di);
+    %plot best-so-far energy (running minimum): standard presentation for
+    %subgradient methods, which chatter in an O(tau*kappa) band around the
+    %optimum when w* sits on the kink of the L1 transaction cost term
     %draw in reverse convergence order so faster methods appear on top
-    h4 = semilogy(iters, all_E(:,4), ':',  'Color',col_above, 'LineWidth',2.2); hold on;
-    h3 = semilogy(iters, all_E(:,3), '--', 'Color',col_ae,    'LineWidth',2.2);
-    h2 = semilogy(iters, all_E(:,2), '-.', 'Color',col_rk4,   'LineWidth',2.2);
-    h1 = semilogy(iters, all_E(:,1), '-',  'Color',col_fe,    'LineWidth',2.2);
+    h4 = semilogy(iters, cummin(all_E(:,4)), ':',  'Color',col_above, 'LineWidth',2.2); hold on;
+    h3 = semilogy(iters, cummin(all_E(:,3)), '--', 'Color',col_ae,    'LineWidth',2.2);
+    h2 = semilogy(iters, cummin(all_E(:,2)), '-.', 'Color',col_rk4,   'LineWidth',2.2);
+    h1 = semilogy(iters, cummin(all_E(:,1)), '-',  'Color',col_fe,    'LineWidth',2.2);
 
-    yline(1e-3,'--k','LineWidth',0.9);
-    yline(1e-5,'-.k','LineWidth',0.9);
-    text(30, 1e-3*2.5,'$10^{-3}$','Interpreter','latex','FontSize',8.5);
-    text(30, 1e-5*2.5,'$10^{-5}$','Interpreter','latex','FontSize',8.5);
+    %threshold lines with built-in labels (only drawn if within data range)
+    if max(all_E(1,:)) > 1e-5
+        yline(1e-5,'--k','$10^{-5}$','Interpreter','latex','FontSize',8.5,...
+            'LabelHorizontalAlignment','left','LineWidth',0.9);
+    end
+    if max(all_E(1,:)) > 1e-7
+        yline(1e-7,'-.k','$10^{-7}$','Interpreter','latex','FontSize',8.5,...
+            'LabelHorizontalAlignment','left','LineWidth',0.9);
+    end
 
     xlabel('Iteration $k$','Interpreter','latex','FontSize',11);
-    ylabel('Lyapunov Energy $E_k$','Interpreter','latex','FontSize',11);
+    ylabel('Best Lyapunov Energy $\min_{j \le k} E_j$','Interpreter','latex','FontSize',11);
     title(labels{di},'Interpreter','latex','FontSize',11,'FontWeight','bold');
 
     lstr = {sprintf('Fixed Euler ($\\tau=%.2f$, %.0f\\%% of $\\tau_c$)',      tau_fe,    100*tau_fe/tau_c),...
             sprintf('RK4 ($\\tau=%.2f$, $4{\\times}$ grad evals/step)',        tau_rk4),...
             sprintf('Adaptive Euler ($\\tau_{\\rm in}=%.1f \\to \\tau_1=%.3f$, 90\\%% of $\\tau_c$)', tau_in, tau_ae),...
             sprintf('Euler above smooth bound ($\\tau=%.1f > \\tau_c=%.3f$)',  tau_above, tau_c)};
-    legend([h1 h2 h3 h4], lstr, 'Interpreter','latex','FontSize',8,'Location','southwest');
+    legend([h1 h2 h3 h4], lstr, 'Interpreter','latex','FontSize',8,'Location','northeast');
     grid on;  hold off;
 
 end  %di
@@ -271,8 +287,9 @@ sgtitle({'Discretisation Analysis: Layer-2 LPNN Inner Optimisation',...
     'ODE: $\dot{w}=-\nabla_w\mathcal{L}_{\mathrm{aug}}$, $\;\dot{\lambda}=h_{\mathrm{bud}}(w)$, $\;\dot{\mu}=g(w)$'},...
     'Interpreter','latex','FontSize',11);
 
-saveas(fig,'fig_discretisation.pdf');
-fprintf('\nSaved: fig_discretisation.pdf\n');
+exportgraphics(fig,'fig_discretisation.pdf','ContentType','vector');
+exportgraphics(fig,'fig_discretisation.png','Resolution',200);
+fprintf('\nSaved: fig_discretisation.pdf / .png\n');
 fprintf('==============================================\n');
 end
 

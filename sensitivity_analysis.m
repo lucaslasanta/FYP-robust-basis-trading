@@ -38,9 +38,9 @@ p_tmp = p_base; p_tmp.w_min = -1.5; p_tmp.w_max = 1.5;
 configs(6).name = 'Looser Bounds (-1.5,1.5)';
 configs(6).p    = p_tmp;
 
-%smaller gamma
-p_tmp = p_base; p_tmp.gamma = 0.001;
-configs(7).name = 'Low Gamma (0.001)';
+%higher gamma (baseline calibrated to 0.001, so test 10x risk aversion)
+p_tmp = p_base; p_tmp.gamma = 0.01;
+configs(7).name = 'High Gamma (0.01)';
 configs(7).p    = p_tmp;
 
 net_cost_bps = 0.1; %institutional treasury futures cost (large bank desks)

@@ -46,8 +46,8 @@ eps2    = chi2inv(p.chi2_alpha, K) * trace(Sigma_f) / T;
 epsilon = sqrt(eps2);
 Phi     = Sigma_f + 1e-6*eye(K);
 
-L_tikh      = 2*diag([1 2 2 1]) - diag([1 1 1],1) - diag([1 1 1],-1);
-L_tikh(1,1) = 1; L_tikh(4,4) = 1;
+%tikhonov matrix: path-graph laplacian for 4 maturities (row sums = 0)
+L_tikh = diag([1 2 2 1]) - diag([1 1 1],1) - diag([1 1 1],-1);
 
 w_k   = w_prev;
 lam_k = state_prev.lambda;
