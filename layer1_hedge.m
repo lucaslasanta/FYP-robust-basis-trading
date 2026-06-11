@@ -19,7 +19,7 @@ h_k    = h_prev;
 lam_lo = lam_prev(1);
 lam_hi = lam_prev(2);
 
-%adaptive step: hessian of objective is 2*sig2_f; need tau < 1/(2*sig2_f) for stability
+%adaptive step: cap at 90% of the monotone bound 1/(2*sig2_f); divergence only at 1/sig2_f
 tau1 = min(p.tau, 0.9 / (2*sig2_f));
 
 for iter = 1:p.n_iter
